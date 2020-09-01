@@ -1,0 +1,4 @@
+.ipynb_checkpoints/
+cs231n/datasets/cifar-10-batches-py/
+.idea/
+__pycache__/
