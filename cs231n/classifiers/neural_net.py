@@ -6,6 +6,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 from past.builtins import xrange
 
+# This function is own code (part of the solution)
+def softmax(X, axis=1):
+    if len(X.shape) == 1:
+        X = X.reshape(1, -1)
+    C = np.max(X, axis=axis)
+    X = X - C.reshape(-1, 1)
+    X = np.exp(X)
+    return X / np.sum(X, axis=axis).reshape(-1, 1)
+
 class TwoLayerNet(object):
     """
     A two-layer fully-connected neural network. The net has an input dimension of
@@ -80,7 +89,8 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        out = np.maximum(0, X @ W1 + b1)
+        scores = out @ W2 + b2
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -98,7 +108,10 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        sm = softmax(scores)
+        loss = -np.sum(np.log(sm[np.arange(X.shape[0]), y]))
+        loss /= X.shape[0]
+        loss += reg * (np.sum(np.square(W1)) + np.sum(np.square(W2)))
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -111,7 +124,18 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        grads["W2"] = np.sum(X, axis=0) / X.shape[0]
+        grads["b2"] = np.ones_like(b2)
+
+        tmp_sm_grad = np.expand_dims(sm, 0) * np.expand_dims(np.transpose(out, [1, 0]), -1)
+        dW = np.sum(tmp_sm_grad, axis=1)
+
+        # Can the be vectorized?
+        for k in range(W.shape[1]):
+            dW[:, k] -= np.sum(X[y == k, :], axis=0).T
+
+        dW /= X.shape[0]
+        dW += reg * 2 * W
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
