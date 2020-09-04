@@ -149,9 +149,9 @@ class TwoLayerNet(object):
         assert b1.shape[0] == Z1.shape[1]
         dZ1_b1 = np.ones((X.shape[0], Z1.shape[1], Z1.shape[1]))
 
-        dloss_Z2 = np.einsum("bi,bij->bj", dloss_SM @ dSM_Z2)
+        dloss_Z2 = np.einsum("bi,bij->bj", dloss_SM, dSM_Z2)
 
-        grads["W2"] = np.einsum("bij,bjk->bik", dloss_Z2, dZ2_W2)
+        grads["W2"] = np.einsum("bi,bj->bij", dloss_Z2, dZ2_W2)
         grads["b2"] = dloss_Z2 @ dZ2_b2
         grads["W1"] = dloss_Z2 @ dZ2_A1 @ dA1_Z1 @ dZ1_W1
         grads["b1"] = dloss_Z2 @ dZ2_A1 @ dA1_Z1 @ dZ1_b1
