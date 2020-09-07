@@ -13,7 +13,7 @@ def softmax(X, axis=1):
     C = np.max(X, axis=axis)
     X = X - C.reshape(-1, 1)
     X = np.exp(X)
-    return X / np.sum(X, axis=axis).reshape(-1, 1)
+    return X / np.sum(X, axis=axis).reshape(-1, 1), X, np.sum(X, axis=axis)
 
 class TwoLayerNet(object):
     """
@@ -110,7 +110,7 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        SM = softmax(scores)
+        SM, SM_num, SM_den = softmax(scores)
         loss = -np.sum(np.log(SM[np.arange(X.shape[0]), y]))
         loss /= X.shape[0]
         loss += reg * (np.sum(np.square(W1)) + np.sum(np.square(W2)))
@@ -129,11 +129,12 @@ class TwoLayerNet(object):
         dloss_SM = np.zeros((X.shape[0], W2.T.shape[0]))
         dloss_SM[np.arange(X.shape[0]), y] = -1.0 / SM[np.arange(X.shape[0]), y]
 
-        dSM_Z2 = np.broadcast_to(np.expand_dims(-SM ** 2, -1), (SM.shape[0], SM.shape[1], SM.shape[1])).copy()
+        dSM_Z2 = - np.einsum("bi,bj->bij", SM_num, SM_num) / SM_den.reshape(-1, 1, 1) ** 2
+        #dSM_Z2 = np.broadcast_to(np.expand_dims(-SM ** 2, -1), (SM.shape[0], SM.shape[1], SM.shape[1])).copy()
         assert SM.shape[1] == Z2.shape[1]
-        for i in range(SM.shape[0]):
-            for j in range(SM.shape[1]):
-                dSM_Z2[i, j, j] += SM[i, j]
+        for b in range(SM.shape[0]):
+            for i in range(SM.shape[1]):
+                dSM_Z2[b, i, i] += SM[b, i]
             #dSM_Z2[i, :, :] += np.diag(SM[i, :])
         #dSM_Z2[np.arange(Z2.shape[0]), :, :] += SM[np.arange(Z2.shape[1]), np.arange(Z2.shape[1])]
         #np.diag(SM[np.arange(Z2.shape[1]), np.arange(Z2.shape[1])])
@@ -151,10 +152,21 @@ class TwoLayerNet(object):
 
         dloss_Z2 = np.einsum("bi,bij->bj", dloss_SM, dSM_Z2)
 
-        grads["W2"] = np.einsum("bi,bj->bij", dloss_Z2, dZ2_W2)
-        grads["b2"] = dloss_Z2 @ dZ2_b2
-        grads["W1"] = dloss_Z2 @ dZ2_A1 @ dA1_Z1 @ dZ1_W1
-        grads["b1"] = dloss_Z2 @ dZ2_A1 @ dA1_Z1 @ dZ1_b1
+        grads["W2"] = np.einsum("bi,bj->bij", dloss_Z2, dZ2_W2).transpose([0, 2, 1])
+        grads["b2"] = dloss_Z2
+        #grads["b2"] = np.einsum("bi,bij->bj", dloss_Z2, dZ2_b2)
+        dloss_Z1 = np.einsum("bi,bij->bj", dloss_Z2, dZ2_A1) * dA1_Z1
+        grads["W1"] = np.einsum("bi,bj->bij", dloss_Z1, dZ1_W1).transpose([0, 2, 1])
+        grads["b1"] = dloss_Z1
+        #grads["b1"] = np.einsum("bi,bij->bj", dloss_Z1, dZ1_b1)
+
+        for para_name, para in grads.items():
+            grads[para_name] = np.sum(para, axis=0) / para.shape[0]
+
+        grads["W2"] += 2 * reg * W2
+        grads["W1"] += 2 * reg * W1
+
+        #import pdb; pdb.set_trace()
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
