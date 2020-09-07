@@ -129,8 +129,9 @@ class TwoLayerNet(object):
         dloss_SM = np.zeros((X.shape[0], W2.T.shape[0]))
         dloss_SM[np.arange(X.shape[0]), y] = -1.0 / SM[np.arange(X.shape[0]), y]
 
-        dSM_Z2 = - np.einsum("bi,bj->bij", SM_num, SM_num, optimize=True) / SM_den.reshape(-1, 1, 1) ** 2
+        dSM_Z2 = - SM_num.reshape(SM_num.shape[0], SM_num.shape[1], 1) * SM_num.reshape(SM_num.shape[0], 1, SM_num.shape[1]) / SM_den.reshape(-1, 1, 1) ** 2
         assert SM.shape[1] == Z2.shape[1]
+        # Can this be vectorized?
         for b in range(SM.shape[0]):
             dSM_Z2[b, :, :] += np.diag(SM[b, :])
         dZ2_W2 = A1
@@ -143,12 +144,14 @@ class TwoLayerNet(object):
         dZ1_W1 = X
         assert b1.shape[0] == Z1.shape[1]
 
+        # Faster alternative to einsum?
         dloss_Z2 = np.einsum("bi,bij->bj", dloss_SM, dSM_Z2, optimize=True)
 
-        grads["W2"] = np.einsum("bi,bj->bij", dloss_Z2, dZ2_W2, optimize=True).transpose([0, 2, 1])
+        grads["W2"] = (dloss_Z2[:,:,np.newaxis] * dZ2_W2[:,np.newaxis,:]).transpose([0, 2, 1])
         grads["b2"] = dloss_Z2
+        # Faster alternative to einsum?
         dloss_Z1 = np.einsum("bi,bij->bj", dloss_Z2, dZ2_A1, optimize=True) * dA1_Z1
-        grads["W1"] = np.einsum("bi,bj->bij", dloss_Z1, dZ1_W1, optimize=True).transpose([0, 2, 1])
+        grads["W1"] = (dloss_Z1[:,:,np.newaxis] * dZ1_W1[:,np.newaxis,:]).transpose([0, 2, 1])
         grads["b1"] = dloss_Z1
 
         for para_name, para in grads.items():
