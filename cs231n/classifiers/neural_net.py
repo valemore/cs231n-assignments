@@ -129,18 +129,12 @@ class TwoLayerNet(object):
         dloss_SM = np.zeros((X.shape[0], W2.T.shape[0]))
         dloss_SM[np.arange(X.shape[0]), y] = -1.0 / SM[np.arange(X.shape[0]), y]
 
-        dSM_Z2 = - np.einsum("bi,bj->bij", SM_num, SM_num) / SM_den.reshape(-1, 1, 1) ** 2
-        #dSM_Z2 = np.broadcast_to(np.expand_dims(-SM ** 2, -1), (SM.shape[0], SM.shape[1], SM.shape[1])).copy()
+        dSM_Z2 = - np.einsum("bi,bj->bij", SM_num, SM_num, optimize=True) / SM_den.reshape(-1, 1, 1) ** 2
         assert SM.shape[1] == Z2.shape[1]
         for b in range(SM.shape[0]):
-            for i in range(SM.shape[1]):
-                dSM_Z2[b, i, i] += SM[b, i]
-            #dSM_Z2[i, :, :] += np.diag(SM[i, :])
-        #dSM_Z2[np.arange(Z2.shape[0]), :, :] += SM[np.arange(Z2.shape[1]), np.arange(Z2.shape[1])]
-        #np.diag(SM[np.arange(Z2.shape[1]), np.arange(Z2.shape[1])])
+            dSM_Z2[b, :, :] += np.diag(SM[b, :])
         dZ2_W2 = A1
         assert b2.shape[0] == Z2.shape[1]
-        dZ2_b2 = np.ones((X.shape[0], Z2.shape[1], Z2.shape[1]))
         dZ2_A1 = np.broadcast_to(W2.T, (X.shape[0], *W2.T.shape))
 
         dA1_Z1 = np.zeros(Z1.shape)
@@ -148,25 +142,20 @@ class TwoLayerNet(object):
 
         dZ1_W1 = X
         assert b1.shape[0] == Z1.shape[1]
-        dZ1_b1 = np.ones((X.shape[0], Z1.shape[1], Z1.shape[1]))
 
-        dloss_Z2 = np.einsum("bi,bij->bj", dloss_SM, dSM_Z2)
+        dloss_Z2 = np.einsum("bi,bij->bj", dloss_SM, dSM_Z2, optimize=True)
 
-        grads["W2"] = np.einsum("bi,bj->bij", dloss_Z2, dZ2_W2).transpose([0, 2, 1])
+        grads["W2"] = np.einsum("bi,bj->bij", dloss_Z2, dZ2_W2, optimize=True).transpose([0, 2, 1])
         grads["b2"] = dloss_Z2
-        #grads["b2"] = np.einsum("bi,bij->bj", dloss_Z2, dZ2_b2)
-        dloss_Z1 = np.einsum("bi,bij->bj", dloss_Z2, dZ2_A1) * dA1_Z1
-        grads["W1"] = np.einsum("bi,bj->bij", dloss_Z1, dZ1_W1).transpose([0, 2, 1])
+        dloss_Z1 = np.einsum("bi,bij->bj", dloss_Z2, dZ2_A1, optimize=True) * dA1_Z1
+        grads["W1"] = np.einsum("bi,bj->bij", dloss_Z1, dZ1_W1, optimize=True).transpose([0, 2, 1])
         grads["b1"] = dloss_Z1
-        #grads["b1"] = np.einsum("bi,bij->bj", dloss_Z1, dZ1_b1)
 
         for para_name, para in grads.items():
             grads[para_name] = np.sum(para, axis=0) / para.shape[0]
 
         grads["W2"] += 2 * reg * W2
         grads["W1"] += 2 * reg * W1
-
-        #import pdb; pdb.set_trace()
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
