@@ -145,6 +145,7 @@ class TwoLayerNet(object):
         assert b1.shape[0] == Z1.shape[1]
 
         # Faster alternative to einsum?
+        # dloss_Z2 = np.tensordot(dloss_SM, dSM_Z2, axes=([1], [1])) # Nope!
         dloss_Z2 = np.einsum("bi,bij->bj", dloss_SM, dSM_Z2, optimize=True)
 
         grads["W2"] = (dloss_Z2[:,:,np.newaxis] * dZ2_W2[:,np.newaxis,:]).transpose([0, 2, 1])
@@ -203,7 +204,9 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            batch_idxs = np.random.choice(num_train, size=batch_size)
+            X_batch = X[batch_idxs, :]
+            y_batch = y[batch_idxs]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -219,7 +222,8 @@ class TwoLayerNet(object):
             #########################################################################
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-            pass
+            for para_name in self.params:
+                self.params[para_name] -= learning_rate * grads[para_name]
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
@@ -265,7 +269,8 @@ class TwoLayerNet(object):
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        scores = self.loss(X)
+        y_pred = np.argmax(scores, axis=1)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
