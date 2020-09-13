@@ -111,8 +111,8 @@ class TwoLayerNet(object):
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
         SM, SM_num, SM_den = softmax(scores)
-        loss = -np.sum(np.log(SM[np.arange(X.shape[0]), y]))
-        loss /= X.shape[0]
+        loss = -np.sum(np.log(SM[np.arange(N), y]))
+        loss /= N
         loss += reg * (np.sum(np.square(W1)) + np.sum(np.square(W2)))
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
@@ -126,17 +126,18 @@ class TwoLayerNet(object):
         #############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        dloss_SM = np.zeros((X.shape[0], W2.T.shape[0]))
-        dloss_SM[np.arange(X.shape[0]), y] = -1.0 / SM[np.arange(X.shape[0]), y]
+        C = SM.shape[1]
+        dloss_SM = np.zeros((N, W2.T.shape[0]))
+        dloss_SM[np.arange(N), y] = -1.0 / SM[np.arange(N), y]
 
-        dSM_Z2 = - SM_num.reshape(SM_num.shape[0], SM_num.shape[1], 1) * SM_num.reshape(SM_num.shape[0], 1, SM_num.shape[1]) / SM_den.reshape(-1, 1, 1) ** 2
-        assert SM.shape[1] == Z2.shape[1]
+        dSM_Z2 = - SM_num.reshape(N, C, 1) * SM_num.reshape(N, 1, C) / SM_den.reshape(-1, 1, 1) ** 2
+        assert C == Z2.shape[1]
         # Can this be vectorized?
         for b in range(SM.shape[0]):
             dSM_Z2[b, :, :] += np.diag(SM[b, :])
         dZ2_W2 = A1
         assert b2.shape[0] == Z2.shape[1]
-        dZ2_A1 = np.broadcast_to(W2.T, (X.shape[0], *W2.T.shape))
+        dZ2_A1 = np.broadcast_to(W2.T, (N, *W2.T.shape))
 
         dA1_Z1 = np.zeros(Z1.shape)
         dA1_Z1[Z1 > 0] = 1
@@ -223,7 +224,9 @@ class TwoLayerNet(object):
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
             for para_name in self.params:
+                print(np.sum(np.square(grads[para_name])))
                 self.params[para_name] -= learning_rate * grads[para_name]
+                print(f"{para_name} after update: {self.params[para_name]}")
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
