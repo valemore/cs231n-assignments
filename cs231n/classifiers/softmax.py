@@ -93,12 +93,9 @@ def softmax_loss_vectorized(W, X, y, reg):
     loss /= X.shape[0]
     loss += reg * np.sum(np.square(W))
 
+    sm[np.arange(X.shape[0]), y] -= 1
     tmp = np.expand_dims(sm, 0) * np.expand_dims(np.transpose(X, [1, 0]), -1)
     dW = np.sum(tmp, axis=1)
-
-    # Can the be vectorized?
-    for k in range(W.shape[1]):
-        dW[:, k] -= np.sum(X[y == k, :], axis=0).T
 
     dW /= X.shape[0]
     dW += reg * 2 * W
