@@ -224,9 +224,9 @@ class TwoLayerNet(object):
             # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
             for para_name in self.params:
-                print(np.sum(np.square(grads[para_name])))
+                #print(np.sum(np.square(grads[para_name])))
                 self.params[para_name] -= learning_rate * grads[para_name]
-                print(f"{para_name} after update: {self.params[para_name]}")
+                #print(f"{para_name} after update: {self.params[para_name]}")
 
             # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
